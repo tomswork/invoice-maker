@@ -1,0 +1,94 @@
+/* Dark calendar — scoped under .au-calendar */
+.au-calendar .rdp-root {
+  --rdp-accent-color: #fafafa;
+  --rdp-accent-background-color: transparent;
+  --rdp-selected-border: 2px solid transparent;
+  --rdp-today-color: #d4d4d8;
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-day_button-height: 2rem;
+  --rdp-day_button-width: 2rem;
+  --rdp-day_button-border-radius: 0.5rem;
+  --rdp-nav-height: 2.25rem;
+  --rdp-nav_button-height: 2rem;
+  --rdp-nav_button-width: 2rem;
+  --rdp-weekday-opacity: 1;
+}
+
+.au-calendar .rdp-month_caption {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.au-calendar .rdp-weekday {
+  color: #71717a;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.au-calendar .rdp-day_button {
+  color: #e4e4e7;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.au-calendar .rdp-day_button:hover:not(:disabled) {
+  background-color: #27272a;
+  color: #fafafa;
+}
+
+.au-calendar .rdp-selected {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.au-calendar .rdp-selected .rdp-day_button {
+  background-color: #fafafa !important;
+  border: none !important;
+  color: #09090b !important;
+  font-weight: 600;
+}
+
+.au-calendar .rdp-selected .rdp-day_button:hover {
+  background-color: #e4e4e7 !important;
+  color: #09090b !important;
+}
+
+.au-calendar .rdp-today:not(.rdp-outside) {
+  color: inherit;
+}
+
+.au-calendar .rdp-today:not(.rdp-outside):not(.rdp-selected) .rdp-day_button {
+  background-color: #27272a;
+  border: 1px solid #3f3f46;
+  color: #fafafa;
+}
+
+.au-calendar .rdp-outside .rdp-day_button {
+  color: #52525b;
+}
+
+.au-calendar .rdp-chevron {
+  fill: #a1a1aa;
+}
+
+.au-calendar .rdp-button_next:hover .rdp-chevron,
+.au-calendar .rdp-button_previous:hover .rdp-chevron {
+  fill: #fafafa;
+}
+
+.au-calendar .rdp-button_next,
+.au-calendar .rdp-button_previous {
+  border-radius: 0.375rem;
+  color: #a1a1aa;
+}
+
+.au-calendar .rdp-button_next:hover,
+.au-calendar .rdp-button_previous:hover {
+  background-color: #27272a;
+}

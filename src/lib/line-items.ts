@@ -1,0 +1,164 @@
+import { addDays, format, parse } from "date-fns";
+
+export type LineItem = {
+  description: string;
+  quantity: number;
+  rateCents: number;
+  workDate?: number;
+};
+
+const AU_DATE_PREFIX = /^(\d{2}\/\d{2}\/\d{4})\s*-\s*(.*)$/;
+
+export function startOfToday(): number {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  return d.getTime();
+}
+
+export function toDateInputValue(timestamp: number): string {
+  return format(new Date(timestamp), "yyyy-MM-dd");
+}
+
+export function fromDateInputValue(value: string): number {
+  return parse(value, "yyyy-MM-dd", new Date()).getTime();
+}
+
+export function formatAuLineDate(timestamp: number): string {
+  return format(new Date(timestamp), "dd/MM/yyyy");
+}
+
+export function parseAuLineDate(dateStr: string): number {
+  return parse(dateStr, "dd/MM/yyyy", new Date()).getTime();
+}
+
+export function stripAuDatePrefix(description: string): string {
+  const match = description.match(AU_DATE_PREFIX);
+  return match ? match[2].trim() : description.trim();
+}
+
+export function inferIncludeLineItemDates(lineItems: LineItem[]): boolean {
+  return lineItems.some(
+    (item) =>
+      item.workDate != null || AU_DATE_PREFIX.test(item.description.trim()),
+  );
+}
+
+export function normalizeLineItemForForm(
+  item: LineItem,
+  includeDates: boolean,
+): LineItem {
+  if (!includeDates) {
+    return { ...item, description: item.description.trim() };
+  }
+  if (item.workDate != null) {
+    return {
+      ...item,
+      description: stripAuDatePrefix(item.description),
+      workDate: item.workDate,
+    };
+  }
+  const match = item.description.trim().match(AU_DATE_PREFIX);
+  if (match) {
+    return {
+      ...item,
+      description: match[2].trim(),
+      workDate: parseAuLineDate(match[1]),
+    };
+  }
+  return {
+    ...item,
+    description: stripAuDatePrefix(item.description),
+    workDate: startOfToday(),
+  };
+}
+
+export function normalizeLineItemsForForm(
+  lineItems: LineItem[],
+  includeLineItemDates?: boolean,
+): { lineItems: LineItem[]; includeLineItemDates: boolean } {
+  const includeDates =
+    includeLineItemDates ?? inferIncludeLineItemDates(lineItems);
+  return {
+    includeLineItemDates: includeDates,
+    lineItems: lineItems.map((item) =>
+      normalizeLineItemForForm(item, includeDates),
+    ),
+  };
+}
+
+export const DEFAULT_BLOCK_HOURS = 7.5;
+export const DEFAULT_BLOCK_DAYS = 4;
+
+export function buildDayBlockLineItems(
+  startDate: number,
+  defaultRateCents: number,
+  days: number = DEFAULT_BLOCK_DAYS,
+  description = "Development",
+): LineItem[] {
+  const count = Math.max(1, Math.floor(days));
+  return Array.from({ length: count }, (_, dayOffset) => ({
+    description,
+    quantity: DEFAULT_BLOCK_HOURS,
+    rateCents: defaultRateCents,
+    workDate: addDays(new Date(startDate), dayOffset).getTime(),
+  }));
+}
+
+export function nextWorkDate(lineItems: LineItem[]): number {
+  const last = lineItems[lineItems.length - 1];
+  if (last?.workDate != null) {
+    return addDays(new Date(last.workDate), 1).getTime();
+  }
+  return startOfToday();
+}
+
+export function emptyLineItem(
+  defaultRateCents: number,
+  includeDates: boolean,
+  existingItems: LineItem[] = [],
+): LineItem {
+  return {
+    description: "",
+    quantity: 1,
+    rateCents: defaultRateCents,
+    ...(includeDates ? { workDate: nextWorkDate(existingItems) } : {}),
+  };
+}
+
+export function normalizeLineItemsForSave(
+  lineItems: LineItem[],
+  includeLineItemDates: boolean,
+): LineItem[] {
+  return lineItems
+    .filter((item) => item.description.trim())
+    .map((item) => {
+      const description = stripAuDatePrefix(item.description);
+      if (includeLineItemDates) {
+        return {
+          description,
+          quantity: item.quantity,
+          rateCents: item.rateCents,
+          workDate: item.workDate ?? startOfToday(),
+        };
+      }
+      return {
+        description,
+        quantity: item.quantity,
+        rateCents: item.rateCents,
+      };
+    });
+}
+
+export function formatLineItemDescription(
+  item: LineItem,
+  includeLineItemDates: boolean,
+): string {
+  const description = stripAuDatePrefix(item.description);
+  if (includeLineItemDates && item.workDate != null) {
+    return `${formatAuLineDate(item.workDate)} - ${description}`;
+  }
+  if (AU_DATE_PREFIX.test(item.description.trim())) {
+    return item.description.trim();
+  }
+  return description;
+}

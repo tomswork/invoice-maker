@@ -1,0 +1,13 @@
+---
+description: Verify TypeScript with typecheck only — never run production build
+alwaysApply: true
+---
+
+# Typecheck, not build
+
+When verifying that code compiles or checking for TypeScript errors:
+
+- **Do** run `npm run typecheck` (`tsc --noEmit`)
+- **Do not** run `npm run build` or `next build` unless the user explicitly asks for a production build
+
+`next build` is slow and unnecessary for routine validation during development. Use typecheck for faster feedback after edits.
