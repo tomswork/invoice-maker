@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Settings, Users } from "lucide-react";
+import { FileText, ScrollText, Settings, Users } from "lucide-react";
 import { ReactNode } from "react";
 
 const nav = [
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/contracts", label: "Contracts", icon: ScrollText },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -14,11 +15,14 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isPrintView =
-    /^\/invoices\/[^/]+$/.test(pathname) &&
-    pathname !== "/invoices/new" &&
+    (/^\/invoices\/[^/]+$/.test(pathname) ||
+      /^\/contracts\/[^/]+$/.test(pathname)) &&
+    !pathname.endsWith("/new") &&
     !pathname.endsWith("/edit");
   const isComposeView =
-    pathname === "/invoices/new" || pathname.endsWith("/edit");
+    pathname === "/invoices/new" ||
+    pathname === "/contracts/new" ||
+    pathname.endsWith("/edit");
 
   if (isPrintView) {
     return <>{children}</>;

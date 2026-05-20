@@ -19,6 +19,7 @@ export const create = mutation({
   args: {
     contactName: v.string(),
     companyName: v.string(),
+    address: v.string(),
     email: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
@@ -32,6 +33,7 @@ export const update = mutation({
     id: v.id("clients"),
     contactName: v.string(),
     companyName: v.string(),
+    address: v.string(),
     email: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
@@ -49,8 +51,15 @@ export const remove = mutation({
       .query("invoices")
       .withIndex("by_client", (q) => q.eq("clientId", args.id))
       .collect();
+    const contracts = await ctx.db
+      .query("contracts")
+      .withIndex("by_client", (q) => q.eq("clientId", args.id))
+      .collect();
     if (invoices.length > 0) {
       throw new Error("Cannot delete a client with existing invoices.");
+    }
+    if (contracts.length > 0) {
+      throw new Error("Cannot delete a client with existing contracts.");
     }
     await ctx.db.delete(args.id);
   },

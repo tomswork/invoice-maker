@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 const businessFields = {
   name: v.string(),
+  address: v.optional(v.string()),
   phone: v.string(),
   email: v.string(),
   abn: v.string(),
@@ -15,6 +16,7 @@ const businessFields = {
   payOnlineUrl: v.optional(v.string()),
   thankYouLine1: v.string(),
   thankYouLine2: v.string(),
+  signatureDataUrl: v.optional(v.string()),
 };
 
 export const get = query({
@@ -45,6 +47,7 @@ export const seedDefaults = mutation({
     }
     return await ctx.db.insert("businessSettings", {
       name: "Tom Hubble",
+      address: "4/129 Melville Rd, Brunswick West VIC 3055, Australia",
       phone: "+61487395771",
       email: "tom@toms.work",
       abn: "97 205 455 086",

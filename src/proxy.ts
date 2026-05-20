@@ -5,18 +5,8 @@ import {
   isValidAuthCookie,
 } from "@/lib/site-auth";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (!isAuthEnabled()) {
-    return NextResponse.next();
-  }
-
-  const cookie = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  const authed = await isValidAuthCookie(cookie);
-
-  if (authed) {
-    if (request.nextUrl.pathname === "/login") {
-      return NextResponse.redirect(new URL("/invoices", request.url));
-    }
     return NextResponse.next();
   }
 
@@ -27,6 +17,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const cookie = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  const authed = await isValidAuthCookie(cookie);
+
+  if (authed) {
+    return NextResponse.next();
+  }
+
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("from", request.nextUrl.pathname);
   return NextResponse.redirect(loginUrl);
@@ -34,6 +31,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)",
+    "/((?!_next|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|map|woff|woff2)$).*)",
   ],
 };

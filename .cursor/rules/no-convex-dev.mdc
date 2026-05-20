@@ -1,0 +1,17 @@
+---
+description: Do not run convex dev — the user runs it locally
+alwaysApply: true
+---
+
+# Convex dev is already running
+
+The user runs `convex dev` (or `npm run dev:convex`) in their own terminal. Do not start or restart it.
+
+When verifying Convex or TypeScript changes:
+
+- **Do** run `npm run typecheck` after edits
+- **Do not** run `convex dev`, `npx convex dev`, `npx convex dev --once`, or `npm run dev:convex` unless the user explicitly asks
+
+Schema and function changes sync when the user's `convex dev` process is running. If types are stale, the user can restart their Convex dev process — do not do that for them.
+
+For one-off backend calls (e.g. migrations), `npx convex run <function>` is fine when the user requests it or it is clearly required.

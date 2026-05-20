@@ -10,7 +10,9 @@
 
 import type * as business from "../business.js";
 import type * as clients from "../clients.js";
+import type * as contracts from "../contracts.js";
 import type * as invoices from "../invoices.js";
+import type * as migrations from "../migrations.js";
 import type * as seed from "../seed.js";
 
 import type {
@@ -22,7 +24,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   business: typeof business;
   clients: typeof clients;
+  contracts: typeof contracts;
   invoices: typeof invoices;
+  migrations: typeof migrations;
   seed: typeof seed;
 }>;
 

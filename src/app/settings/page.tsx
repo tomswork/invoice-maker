@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SignaturePadField } from "@/components/signature-pad-field";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 
@@ -12,6 +13,7 @@ export default function SettingsPage() {
   const upsert = useMutation(api.business.upsert);
   const [form, setForm] = useState({
     name: "",
+    address: "",
     phone: "",
     email: "",
     abn: "",
@@ -24,6 +26,7 @@ export default function SettingsPage() {
     payOnlineUrl: "",
     thankYouLine1: "",
     thankYouLine2: "",
+    signatureDataUrl: "" as string | undefined,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -32,6 +35,7 @@ export default function SettingsPage() {
     if (!business) return;
     setForm({
       name: business.name,
+      address: business.address ?? "",
       phone: business.phone,
       email: business.email,
       abn: business.abn,
@@ -44,6 +48,7 @@ export default function SettingsPage() {
       payOnlineUrl: business.payOnlineUrl ?? "",
       thankYouLine1: business.thankYouLine1,
       thankYouLine2: business.thankYouLine2,
+      signatureDataUrl: business.signatureDataUrl,
     });
   }, [business]);
 
@@ -53,6 +58,7 @@ export default function SettingsPage() {
     setSaved(false);
     await upsert({
       name: form.name,
+      address: form.address.trim() || undefined,
       phone: form.phone,
       email: form.email,
       abn: form.abn,
@@ -65,6 +71,7 @@ export default function SettingsPage() {
       payOnlineUrl: form.payOnlineUrl.trim() || undefined,
       thankYouLine1: form.thankYouLine1,
       thankYouLine2: form.thankYouLine2,
+      signatureDataUrl: form.signatureDataUrl || undefined,
     });
     setSaving(false);
     setSaved(true);
@@ -79,7 +86,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Business settings</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Your details appear on every invoice. Update them once here.
+          Your details appear on invoices and contracts. Update them once here.
         </p>
       </div>
       <form onSubmit={onSubmit} className="space-y-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
@@ -95,6 +102,17 @@ export default function SettingsPage() {
           <div>
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="address">Business address</Label>
+            <Textarea
+              id="address"
+              rows={2}
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              placeholder="4/129 Melville Rd, Brunswick West VIC 3055, Australia"
+              required
+            />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="abn">ABN</Label>
@@ -135,6 +153,19 @@ export default function SettingsPage() {
           <div className="sm:col-span-2">
             <Label htmlFor="thank2">Thank you line 2</Label>
             <Textarea id="thank2" rows={2} value={form.thankYouLine2} onChange={(e) => setForm({ ...form, thankYouLine2: e.target.value })} />
+          </div>
+          <div className="sm:col-span-2 border-t border-zinc-800 pt-4">
+            <Label>Contract signature</Label>
+            <p className="mt-1 mb-3 text-sm text-zinc-500">
+              Draw your signature below. It appears on the contractor side at the
+              bottom of contracts.
+            </p>
+            <SignaturePadField
+              value={form.signatureDataUrl}
+              onChange={(signatureDataUrl) =>
+                setForm((current) => ({ ...current, signatureDataUrl }))
+              }
+            />
           </div>
         </div>
         <div className="flex items-center gap-3">

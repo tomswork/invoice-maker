@@ -23,25 +23,18 @@ export default function EditInvoicePage({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {invoice.status === "draft" ? "Draft invoice" : "Edit invoice"}
-        </h1>
-      </div>
-      <InvoiceForm
-        invoiceId={invoice._id}
-        initial={{
-          clientId: invoice.clientId,
-          issuedAt: invoice.issuedAt,
-          dueAt: invoice.dueAt,
-          invoiceNumber: invoice.invoiceNumber,
-          status: invoice.status,
-          lineItems: invoice.lineItems,
-          includeLineItemDates: invoice.includeLineItemDates,
-          notes: invoice.notes,
-        }}
-      />
-    </div>
+    <InvoiceForm
+      invoiceId={invoice._id}
+      initial={{
+        clientId: invoice.clientId,
+        issuedAt: invoice.issuedAt,
+        dueAt: invoice.dueAt,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        lineItems: invoice.lineItems,
+        includeLineItemDates: invoice.includeLineItemDates,
+        notes: invoice.notes,
+      }}
+    />
   );
 }
