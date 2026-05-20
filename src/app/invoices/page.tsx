@@ -1,22 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import {
+  InvoicePaidBadge,
+  InvoicePaidToggle,
+} from "@/components/invoice-paid-toggle";
 import { Button } from "@/components/ui/button";
 import {
   formatCents,
   formatInvoiceDate,
   formatInvoiceLabel,
 } from "@/lib/format";
+import { sortInvoicesByLatestNumber } from "@/lib/invoice-number";
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const invoices = useQuery(api.invoices.list);
   const removeInvoice = useMutation(api.invoices.remove);
+  const duplicateInvoice = useMutation(api.invoices.duplicate);
   const [deletingId, setDeletingId] = useState<Id<"invoices"> | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<Id<"invoices"> | null>(
+    null,
+  );
+
+  const sortedInvoices = useMemo(
+    () => (invoices ? sortInvoicesByLatestNumber(invoices) : undefined),
+    [invoices],
+  );
+
+  async function handleDuplicate(id: Id<"invoices">) {
+    setDuplicatingId(id);
+    try {
+      const newId = await duplicateInvoice({ id });
+      router.push(`/invoices/${newId}/edit`);
+    } finally {
+      setDuplicatingId(null);
+    }
+  }
 
   async function handleDelete(id: Id<"invoices">, label: string) {
     if (
@@ -39,7 +65,9 @@ export default function InvoicesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
-          <p className="mt-1 text-sm text-zinc-400">All invoices you have created.</p>
+          <p className="mt-1 text-sm text-zinc-400">
+            All invoices you have created.
+          </p>
         </div>
         <Link href="/invoices/new">
           <Button>
@@ -62,13 +90,14 @@ export default function InvoicesPage() {
             </tr>
           </thead>
           <tbody>
-            {invoices?.map((invoice) => {
+            {sortedInvoices?.map((invoice) => {
               const label = formatInvoiceLabel(
                 invoice.invoiceNumber,
                 invoice.status,
                 invoice.client?.companyName,
               );
               const editHref = `/invoices/${invoice._id}/edit`;
+
               return (
                 <tr
                   key={invoice._id}
@@ -89,12 +118,11 @@ export default function InvoicesPage() {
                           Draft
                         </span>
                       )}
+                      <InvoicePaidBadge paidAt={invoice.paidAt} />
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
-                    {invoice.client
-                      ? `${invoice.client.contactName} — ${invoice.client.companyName}`
-                      : "—"}
+                    {invoice.client?.companyName ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
                     {formatInvoiceDate(invoice.issuedAt)}
@@ -107,6 +135,23 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
+                      {invoice.status === "final" && (
+                        <InvoicePaidToggle
+                          id={invoice._id}
+                          paidAt={invoice.paidAt}
+                          compact
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="px-3 py-1.5"
+                        disabled={duplicatingId === invoice._id}
+                        onClick={() => void handleDuplicate(invoice._id)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                        {duplicatingId === invoice._id ? "…" : "Duplicate"}
+                      </Button>
                       <Link href={editHref}>
                         <Button variant="secondary" className="px-3 py-1.5">
                           <Pencil className="h-3.5 w-3.5" />
@@ -118,17 +163,17 @@ export default function InvoicesPage() {
                         variant="ghost"
                         className="px-3 py-1.5 text-red-400 hover:bg-red-950/50 hover:text-red-300"
                         disabled={deletingId === invoice._id}
+                        aria-label={`Delete ${label}`}
                         onClick={() => void handleDelete(invoice._id, label)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        {deletingId === invoice._id ? "…" : "Delete"}
                       </Button>
                     </div>
                   </td>
                 </tr>
               );
             })}
-            {invoices?.length === 0 && (
+            {sortedInvoices?.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                   No invoices yet.

@@ -10,8 +10,12 @@ import { InvoiceFormPreview } from "@/components/invoice-form-preview";
 import { AuDatePicker } from "@/components/ui/au-date-picker";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { formatCents } from "@/lib/format";
+import { formatCents, formatInvoiceNumber } from "@/lib/format";
 import { invoiceTotalCents } from "@/lib/invoice-math";
+import {
+  nextInvoiceNumberForClient,
+  parseInvoiceNumberInput,
+} from "@/lib/invoice-number";
 import {
   buildDayBlockLineItems,
   DEFAULT_BLOCK_DAYS,
@@ -66,6 +70,9 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
   );
   const [issuedAt, setIssuedAt] = useState(toDateInputValue(initial.issuedAt));
   const [dueAt, setDueAt] = useState(toDateInputValue(initial.dueAt));
+  const [invoiceNumber, setInvoiceNumber] = useState(
+    initial.invoiceNumber != null ? String(initial.invoiceNumber) : "",
+  );
   const [includeLineItemDates, setIncludeLineItemDates] = useState(
     initialLineState.includeLineItemDates,
   );
@@ -79,31 +86,36 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const skipNextSave = useRef(true);
+  const invoiceNumberManuallyEdited = useRef(initial.invoiceNumber != null);
   const isDraft = initial.status === "draft";
 
   const totalCents = useMemo(() => invoiceTotalCents(lineItems), [lineItems]);
 
-  const previewInvoiceNumber = useMemo(() => {
-    if (initial.invoiceNumber != null) {
-      return initial.invoiceNumber;
-    }
+  const suggestedInvoiceNumber = useMemo(() => {
     if (!clientId || !invoices?.length) {
       return 1;
     }
-    const forClient = invoices.filter(
-      (inv) =>
-        inv.clientId === clientId &&
-        inv.status === "final" &&
-        inv.invoiceNumber != null,
-    );
-    const numbers = forClient.map((inv) => inv.invoiceNumber as number);
-    return (numbers.length > 0 ? Math.max(...numbers) : 0) + 1;
-  }, [initial.invoiceNumber, invoices, clientId]);
+    return nextInvoiceNumberForClient(invoices, clientId, invoiceId);
+  }, [clientId, invoices, invoiceId]);
+
+  const parsedInvoiceNumber = useMemo(
+    () => parseInvoiceNumberInput(invoiceNumber),
+    [invoiceNumber],
+  );
+
+  const previewInvoiceNumber = parsedInvoiceNumber ?? suggestedInvoiceNumber;
 
   const selectedClient = useMemo(
     () => clients?.find((c) => c._id === clientId) ?? null,
     [clients, clientId],
   );
+
+  useEffect(() => {
+    if (!isDraft || invoiceNumberManuallyEdited.current || !clientId) {
+      return;
+    }
+    setInvoiceNumber(String(suggestedInvoiceNumber));
+  }, [isDraft, clientId, suggestedInvoiceNumber]);
 
   useEffect(() => {
     if (skipNextSave.current) {
@@ -122,6 +134,7 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
             dueAt: fromDateInputValue(dueAt),
             lineItems,
             includeLineItemDates,
+            invoiceNumber: parsedInvoiceNumber ?? undefined,
           });
           setSaveStatus("saved");
           setError(null);
@@ -142,6 +155,7 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
     dueAt,
     lineItems,
     includeLineItemDates,
+    parsedInvoiceNumber,
     saveDraft,
   ]);
 
@@ -185,6 +199,10 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
       setError("Choose a client before finalizing.");
       return;
     }
+    if (!parsedInvoiceNumber) {
+      setError("Enter a valid invoice number (1 or higher).");
+      return;
+    }
     setFinalizing(true);
     setError(null);
     try {
@@ -202,6 +220,7 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
         dueAt: fromDateInputValue(dueAt),
         lineItems: savedLineItems,
         includeLineItemDates,
+        invoiceNumber: parsedInvoiceNumber,
       });
       router.push(`/invoices/${invoiceId}`);
     } catch (err) {
@@ -308,6 +327,31 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
                 required
               />
             </div>
+            {clientId && (
+              <div>
+                <Label htmlFor="invoice-number">Invoice number</Label>
+                <Input
+                  id="invoice-number"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={invoiceNumber}
+                  onChange={(e) => {
+                    invoiceNumberManuallyEdited.current = true;
+                    setInvoiceNumber(e.target.value);
+                  }}
+                  required={!isDraft}
+                />
+                <p className="mt-1 text-xs text-zinc-500">
+                  Displays as{" "}
+                  {formatInvoiceNumber(
+                    previewInvoiceNumber,
+                    selectedClient?.companyName,
+                  )}
+                  {isDraft ? " — defaults to the next number for this client." : ""}
+                </p>
+              </div>
+            )}
           </div>
         </section>
 

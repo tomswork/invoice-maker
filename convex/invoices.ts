@@ -2,6 +2,14 @@ import { mutation, MutationCtx, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { lineItemValidator } from "./schema";
+import {
+  DASHBOARD_FINANCIAL_YEARS,
+  financialYearKeyFromTimestamp,
+  financialYearLabel,
+  gstCentsFromExclusiveAmountCents,
+  residentTaxForFinancialYearCents,
+  type FinancialYearKey,
+} from "./australian_tax";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -15,7 +23,11 @@ function lineItemTotalCents(item: {
 export function invoiceTotalCents(
   lineItems: Array<{ quantity: number; rateCents: number }>,
 ): number {
-  return lineItems.reduce((sum, item) => sum + lineItemTotalCents(item), 0);
+  const total = lineItems.reduce(
+    (sum, item) => sum + lineItemTotalCents(item),
+    0,
+  );
+  return Number.isFinite(total) ? total : 0;
 }
 
 export function invoiceStatus(
@@ -27,6 +39,7 @@ export function invoiceStatus(
 async function nextInvoiceNumberForClient(
   ctx: MutationCtx,
   clientId: Id<"clients">,
+  excludeInvoiceId?: Id<"invoices">,
 ): Promise<number> {
   const invoices = await ctx.db
     .query("invoices")
@@ -35,10 +48,43 @@ async function nextInvoiceNumberForClient(
   const numbers = invoices
     .filter(
       (inv) =>
-        invoiceStatus(inv) === "final" && typeof inv.invoiceNumber === "number",
+        inv._id !== excludeInvoiceId &&
+        invoiceStatus(inv) === "final" &&
+        typeof inv.invoiceNumber === "number",
     )
     .map((inv) => inv.invoiceNumber as number);
   return (numbers.length > 0 ? Math.max(...numbers) : 0) + 1;
+}
+
+function assertValidInvoiceNumber(invoiceNumber: number) {
+  if (!Number.isInteger(invoiceNumber) || invoiceNumber < 1) {
+    throw new Error("Invoice number must be a positive whole number.");
+  }
+}
+
+async function assertInvoiceNumberAvailable(
+  ctx: MutationCtx,
+  clientId: Id<"clients">,
+  invoiceNumber: number,
+  excludeInvoiceId: Id<"invoices">,
+) {
+  const invoices = await ctx.db
+    .query("invoices")
+    .withIndex("by_client", (q) => q.eq("clientId", clientId))
+    .collect();
+
+  const conflict = invoices.find(
+    (invoice) =>
+      invoice._id !== excludeInvoiceId &&
+      invoiceStatus(invoice) === "final" &&
+      invoice.invoiceNumber === invoiceNumber,
+  );
+
+  if (conflict) {
+    throw new Error(
+      `Invoice number ${invoiceNumber} is already used for this client.`,
+    );
+  }
 }
 
 export const list = query({
@@ -58,6 +104,93 @@ export const list = query({
         };
       }),
     );
+  },
+});
+
+export const clientSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    const [invoices, business] = await Promise.all([
+      ctx.db.query("invoices").collect(),
+      ctx.db.query("businessSettings").first(),
+    ]);
+
+    const gstRegistered = business?.gstRegistered ?? false;
+
+    const yearTotals = Object.fromEntries(
+      DASHBOARD_FINANCIAL_YEARS.map((key) => [
+        key,
+        { totalCents: 0, unpaidTotalCents: 0 },
+      ]),
+    ) as Record<
+      FinancialYearKey,
+      { totalCents: number; unpaidTotalCents: number }
+    >;
+
+    let totalIncomeCents = 0;
+    let unpaidIncomeCents = 0;
+
+    for (const invoice of invoices) {
+      if (invoiceStatus(invoice) !== "final") {
+        continue;
+      }
+
+      const invoiceTotal = invoiceTotalCents(invoice.lineItems);
+      totalIncomeCents += invoiceTotal;
+      if (invoice.paidAt == null) {
+        unpaidIncomeCents += invoiceTotal;
+      }
+
+      const financialYear = financialYearKeyFromTimestamp(invoice.issuedAt);
+      if (!financialYear) {
+        continue;
+      }
+
+      yearTotals[financialYear].totalCents += invoiceTotal;
+      if (invoice.paidAt == null) {
+        yearTotals[financialYear].unpaidTotalCents += invoiceTotal;
+      }
+    }
+
+    const financialYears = DASHBOARD_FINANCIAL_YEARS.map((key) => {
+      const { totalCents } = yearTotals[key];
+      const gstCents = gstCentsFromExclusiveAmountCents(
+        totalCents,
+        gstRegistered,
+      );
+      const tax = residentTaxForFinancialYearCents(totalCents, key);
+
+      return {
+        key,
+        label: financialYearLabel(key),
+        taxableIncomeCents: totalCents,
+        gstCents,
+        incomeTaxCents: tax.incomeTaxCents,
+        litoCents: tax.litoCents,
+        medicareLevyCents: tax.medicareLevyCents,
+        totalTaxCents: tax.totalTaxCents,
+      };
+    });
+
+    const taxEstimateCents = financialYears.reduce(
+      (sum, year) => sum + year.totalTaxCents,
+      0,
+    );
+    const gstPayableCents = gstCentsFromExclusiveAmountCents(
+      totalIncomeCents,
+      gstRegistered,
+    );
+
+    return {
+      gstRegistered,
+      totalIncomeCents,
+      unpaidIncomeCents,
+      taxEstimateCents,
+      taxBreakdown: {
+        financialYears,
+        gstPayableCents,
+      },
+    };
   },
 });
 
@@ -107,6 +240,7 @@ export const saveDraft = mutation({
     lineItems: v.array(lineItemValidator),
     includeLineItemDates: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    invoiceNumber: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.id);
@@ -118,6 +252,18 @@ export const saveDraft = mutation({
       const client = await ctx.db.get(args.clientId);
       if (!client) {
         throw new Error("Client not found.");
+      }
+    }
+
+    if (args.invoiceNumber != null) {
+      assertValidInvoiceNumber(args.invoiceNumber);
+      if (args.clientId && invoiceStatus(invoice) === "final") {
+        await assertInvoiceNumberAvailable(
+          ctx,
+          args.clientId,
+          args.invoiceNumber,
+          args.id,
+        );
       }
     }
 
@@ -141,6 +287,7 @@ export const finalize = mutation({
     lineItems: v.array(lineItemValidator),
     includeLineItemDates: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    invoiceNumber: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.id);
@@ -159,7 +306,16 @@ export const finalize = mutation({
     }
 
     const invoiceNumber =
-      invoice.invoiceNumber ?? (await nextInvoiceNumberForClient(ctx, args.clientId));
+      args.invoiceNumber ??
+      invoice.invoiceNumber ??
+      (await nextInvoiceNumberForClient(ctx, args.clientId, args.id));
+    assertValidInvoiceNumber(invoiceNumber);
+    await assertInvoiceNumberAvailable(
+      ctx,
+      args.clientId,
+      invoiceNumber,
+      args.id,
+    );
 
     await ctx.db.patch(args.id, {
       status: "final",
@@ -220,6 +376,7 @@ export const update = mutation({
     lineItems: v.array(lineItemValidator),
     includeLineItemDates: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    invoiceNumber: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -230,11 +387,65 @@ export const update = mutation({
     if (fields.lineItems.length === 0) {
       throw new Error("Add at least one line item.");
     }
+    if (fields.invoiceNumber != null) {
+      assertValidInvoiceNumber(fields.invoiceNumber);
+      await assertInvoiceNumberAvailable(
+        ctx,
+        fields.clientId,
+        fields.invoiceNumber,
+        id,
+      );
+    }
     await ctx.db.patch(id, {
       ...fields,
       updatedAt: Date.now(),
     });
     return id;
+  },
+});
+
+export const setPaid = mutation({
+  args: {
+    id: v.id("invoices"),
+    paid: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const invoice = await ctx.db.get(args.id);
+    if (!invoice) {
+      throw new Error("Invoice not found.");
+    }
+    if (invoiceStatus(invoice) !== "final") {
+      throw new Error("Only final invoices can be marked as paid.");
+    }
+
+    await ctx.db.patch(args.id, {
+      paidAt: args.paid ? Date.now() : undefined,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const duplicate = mutation({
+  args: { id: v.id("invoices") },
+  handler: async (ctx, args) => {
+    const invoice = await ctx.db.get(args.id);
+    if (!invoice) {
+      throw new Error("Invoice not found.");
+    }
+
+    const now = Date.now();
+    const dueOffset = Math.max(MS_PER_DAY, invoice.dueAt - invoice.issuedAt);
+
+    return await ctx.db.insert("invoices", {
+      status: "draft",
+      clientId: invoice.clientId,
+      issuedAt: now,
+      dueAt: now + dueOffset,
+      lineItems: invoice.lineItems.map((item) => ({ ...item })),
+      includeLineItemDates: invoice.includeLineItemDates,
+      notes: invoice.notes,
+      updatedAt: now,
+    });
   },
 });
 

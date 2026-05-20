@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { use, useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { InvoiceDocument } from "@/components/invoice-document";
+import { InvoicePaidBadge, InvoicePaidToggle } from "@/components/invoice-paid-toggle";
 import { Button } from "@/components/ui/button";
 import { formatInvoiceNumber } from "@/lib/format";
 import { inferIncludeLineItemDates } from "@/lib/line-items";
@@ -19,6 +20,8 @@ export default function InvoiceViewPage({
   const { id } = use(params);
   const router = useRouter();
   const invoice = useQuery(api.invoices.get, { id: id as Id<"invoices"> });
+  const duplicateInvoice = useMutation(api.invoices.duplicate);
+  const [duplicating, setDuplicating] = useState(false);
 
   useEffect(() => {
     if (invoice?.status === "draft") {
@@ -64,14 +67,28 @@ export default function InvoiceViewPage({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <p className="text-sm text-zinc-500">Invoice</p>
-            <h1 className="text-xl font-semibold text-zinc-50">
+            <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold text-zinc-50">
               {formatInvoiceNumber(
                 invoice.invoiceNumber!,
                 invoice.client.companyName,
               )}
+              <InvoicePaidBadge paidAt={invoice.paidAt} />
             </h1>
           </div>
           <div className="flex flex-wrap gap-2">
+            <InvoicePaidToggle id={invoice._id} paidAt={invoice.paidAt} />
+            <Button
+              variant="secondary"
+              disabled={duplicating}
+              onClick={() => {
+                setDuplicating(true);
+                void duplicateInvoice({ id: invoice._id })
+                  .then((newId) => router.push(`/invoices/${newId}/edit`))
+                  .finally(() => setDuplicating(false));
+              }}
+            >
+              {duplicating ? "Duplicating…" : "Duplicate"}
+            </Button>
             <Link href={`/invoices/${id}/edit`}>
               <Button variant="secondary">Edit</Button>
             </Link>

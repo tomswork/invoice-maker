@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, ScrollText, Settings, Users } from "lucide-react";
+import { FileText, LayoutDashboard, ScrollText, Settings, Users } from "lucide-react";
 import { ReactNode } from "react";
 
 const nav = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/contracts", label: "Contracts", icon: ScrollText },
   { href: "/clients", label: "Clients", icon: Users },
@@ -37,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={`mx-auto flex items-center justify-between gap-6 px-4 py-4 sm:px-6 ${widthClass}`}
         >
           <Link
-            href="/invoices"
+            href="/dashboard"
             className="text-lg font-semibold tracking-tight text-zinc-50"
           >
             Invoice Maker

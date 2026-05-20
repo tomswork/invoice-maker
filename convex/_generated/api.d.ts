@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as australian_tax from "../australian_tax.js";
 import type * as business from "../business.js";
 import type * as clients from "../clients.js";
 import type * as contracts from "../contracts.js";
@@ -22,6 +23,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  australian_tax: typeof australian_tax;
   business: typeof business;
   clients: typeof clients;
   contracts: typeof contracts;

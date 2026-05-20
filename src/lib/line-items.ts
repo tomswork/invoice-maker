@@ -149,16 +149,33 @@ export function normalizeLineItemsForSave(
     });
 }
 
+export function getLineItemDescriptionParts(
+  item: LineItem,
+  includeLineItemDates: boolean,
+): { date: string | null; description: string } {
+  const description = stripAuDatePrefix(item.description);
+  if (includeLineItemDates && item.workDate != null) {
+    return { date: formatAuLineDate(item.workDate), description };
+  }
+  if (AU_DATE_PREFIX.test(item.description.trim())) {
+    const match = item.description.trim().match(AU_DATE_PREFIX);
+    if (match) {
+      return { date: match[1], description: match[2].trim() };
+    }
+  }
+  return { date: null, description };
+}
+
 export function formatLineItemDescription(
   item: LineItem,
   includeLineItemDates: boolean,
 ): string {
-  const description = stripAuDatePrefix(item.description);
-  if (includeLineItemDates && item.workDate != null) {
-    return `${formatAuLineDate(item.workDate)} - ${description}`;
-  }
-  if (AU_DATE_PREFIX.test(item.description.trim())) {
-    return item.description.trim();
+  const { date, description } = getLineItemDescriptionParts(
+    item,
+    includeLineItemDates,
+  );
+  if (date != null) {
+    return `${date} - ${description}`;
   }
   return description;
 }

@@ -103,10 +103,10 @@ export default function ContractsPage() {
                         variant="ghost"
                         className="px-3 py-1.5 text-red-400 hover:bg-red-950/50 hover:text-red-300"
                         disabled={deletingId === contract._id}
+                        aria-label={`Delete ${label}`}
                         onClick={() => void handleDelete(contract._id, label)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        {deletingId === contract._id ? "…" : "Delete"}
                       </Button>
                     </div>
                   </td>

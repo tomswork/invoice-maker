@@ -54,6 +54,7 @@ export default defineSchema({
     lineItems: v.array(lineItemValidator),
     includeLineItemDates: v.optional(v.boolean()),
     notes: v.optional(v.string()),
+    paidAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })
     .index("by_client", ["clientId"])

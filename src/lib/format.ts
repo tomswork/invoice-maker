@@ -1,10 +1,18 @@
 import { format } from "date-fns";
 
-export function formatCents(cents: number): string {
+export function coerceCents(cents: number | null | undefined): number {
+  if (cents == null || Number.isNaN(cents) || !Number.isFinite(cents)) {
+    return 0;
+  }
+
+  return cents;
+}
+
+export function formatCents(cents: number | null | undefined): string {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency: "AUD",
-  }).format(cents / 100);
+  }).format(coerceCents(cents) / 100);
 }
 
 /** First 4 letters of the client company name (A–Z only, uppercased). */
