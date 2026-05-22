@@ -92,7 +92,9 @@ export default function InvoiceViewPage({
             <Link href={`/invoices/${id}/edit`}>
               <Button variant="secondary">Edit</Button>
             </Link>
-            <Button onClick={() => window.print()}>Print / PDF</Button>
+            <a href={`/api/invoices/${id}/pdf`}>
+              <Button>Download PDF</Button>
+            </a>
             <Link href="/invoices">
               <Button variant="ghost">Back</Button>
             </Link>

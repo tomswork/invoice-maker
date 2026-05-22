@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatContractFilenameDate, slugifyForFilename } from "@/lib/contract-format";
 
 export function coerceCents(cents: number | null | undefined): number {
   if (cents == null || Number.isNaN(cents) || !Number.isFinite(cents)) {
@@ -53,4 +54,12 @@ export function formatInvoiceDate(timestamp: number): string {
 export function formatQuantity(hours: number): string {
   const label = hours === 1 ? "Hour" : "Hours";
   return `${hours} ${label}`;
+}
+
+export function buildInvoicePdfFilename(
+  contractorName: string,
+  clientCompanyName: string,
+  issuedAt: number,
+): string {
+  return `${slugifyForFilename(contractorName)}-invoice-${formatContractFilenameDate(issuedAt)}-${slugifyForFilename(clientCompanyName)}.pdf`;
 }
