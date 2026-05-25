@@ -30,6 +30,7 @@ type Business = {
 type Client = {
 	contactName: string;
 	companyName: string;
+	abn?: string;
 };
 
 type InvoiceDocumentProps = {
@@ -79,6 +80,9 @@ export function InvoiceDocument({
 					<div className="text-[15px] leading-snug">
 						<p className="font-semibold text-black">{client.contactName}</p>
 						<p className={`mt-0.5 ${accentClass}`}>{client.companyName}</p>
+						{client.abn?.trim() ? (
+							<p className={`mt-0.5 ${accentClass}`}>ABN: {client.abn.trim()}</p>
+						) : null}
 					</div>
 					<table className="w-[17rem] border-collapse text-[15px]">
 						<tbody>

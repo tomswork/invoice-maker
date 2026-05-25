@@ -21,7 +21,7 @@ type BusinessSettings = {
 
 type InvoiceFormPreviewProps = {
   business: BusinessSettings;
-  client: { contactName: string; companyName: string } | null;
+  client: { contactName: string; companyName: string; abn?: string } | null;
   invoiceNumber: number;
   issuedAt: number;
   dueAt: number;

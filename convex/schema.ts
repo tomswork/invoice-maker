@@ -40,6 +40,7 @@ export default defineSchema({
   clients: defineTable({
     contactName: v.string(),
     companyName: v.string(),
+    abn: v.optional(v.string()),
     address: v.optional(v.string()),
     email: v.optional(v.string()),
     notes: v.optional(v.string()),

@@ -11,12 +11,13 @@ type Client = {
   _id: Id<"clients">;
   contactName: string;
   companyName: string;
+  abn?: string;
   address?: string;
   email?: string;
 };
 
 function emptyForm() {
-  return { contactName: "", companyName: "", address: "", email: "" };
+  return { contactName: "", companyName: "", abn: "", address: "", email: "" };
 }
 
 export default function ClientsPage() {
@@ -27,6 +28,7 @@ export default function ClientsPage() {
 
   const [contactName, setContactName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [abn, setAbn] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,6 +44,7 @@ export default function ClientsPage() {
     setEditForm({
       contactName: client.contactName,
       companyName: client.companyName,
+      abn: client.abn ?? "",
       address: client.address ?? "",
       email: client.email ?? "",
     });
@@ -62,11 +65,13 @@ export default function ClientsPage() {
       await createClient({
         contactName: contactName.trim(),
         companyName: companyName.trim(),
+        abn: abn.trim() || undefined,
         address: address.trim(),
         email: email.trim() || undefined,
       });
       setContactName("");
       setCompanyName("");
+      setAbn("");
       setAddress("");
       setEmail("");
     } catch (err) {
@@ -86,6 +91,7 @@ export default function ClientsPage() {
         id: editingId,
         contactName: editForm.contactName.trim(),
         companyName: editForm.companyName.trim(),
+        abn: editForm.abn.trim() || undefined,
         address: editForm.address.trim(),
         email: editForm.email.trim() || undefined,
       });
@@ -132,6 +138,15 @@ export default function ClientsPage() {
               required
             />
           </div>
+          <div>
+            <Label htmlFor="abn">ABN (optional)</Label>
+            <Input
+              id="abn"
+              value={abn}
+              onChange={(e) => setAbn(e.target.value)}
+              placeholder="12 345 678 901"
+            />
+          </div>
           <div className="sm:col-span-2">
             <Label htmlFor="address">Address</Label>
             <Textarea
@@ -165,6 +180,7 @@ export default function ClientsPage() {
             <tr>
               <th className="px-4 py-3 font-medium">Contact</th>
               <th className="px-4 py-3 font-medium">Company</th>
+              <th className="px-4 py-3 font-medium">ABN</th>
               <th className="px-4 py-3 font-medium">Address</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3" />
@@ -176,6 +192,7 @@ export default function ClientsPage() {
                 <tr className="border-b border-zinc-800 last:border-0">
                   <td className="px-4 py-3 font-medium">{client.contactName}</td>
                   <td className="px-4 py-3 text-zinc-400">{client.companyName}</td>
+                  <td className="px-4 py-3 text-zinc-400">{client.abn?.trim() || "—"}</td>
                   <td className="whitespace-pre-line px-4 py-3 text-zinc-400">
                     {client.address?.trim() || "—"}
                   </td>
@@ -201,7 +218,7 @@ export default function ClientsPage() {
                 </tr>
                 {editingId === client._id && (
                   <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                    <td colSpan={5} className="px-4 py-4">
+                    <td colSpan={6} className="px-4 py-4">
                       <form onSubmit={onEditSubmit}>
                         <p className="mb-3 text-sm font-medium text-zinc-200">
                           Edit client
@@ -237,6 +254,21 @@ export default function ClientsPage() {
                                 }))
                               }
                               required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`edit-abn-${client._id}`}>
+                              ABN (optional)
+                            </Label>
+                            <Input
+                              id={`edit-abn-${client._id}`}
+                              value={editForm.abn}
+                              onChange={(e) =>
+                                setEditForm((f) => ({
+                                  ...f,
+                                  abn: e.target.value,
+                                }))
+                              }
                             />
                           </div>
                           <div className="sm:col-span-2">
@@ -297,7 +329,7 @@ export default function ClientsPage() {
             ))}
             {clients?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                   No clients yet.
                 </td>
               </tr>

@@ -23,6 +23,7 @@ type ContractPdfDocumentProps = {
 	agreementDate: number;
 	startDate: number;
   clientAddress: string;
+  clientAbn?: string;
   clientEmail?: string;
   contractorName: string;
   contractorAbn: string;
@@ -46,6 +47,7 @@ export function ContractPdfDocument({
 	agreementDate,
 	startDate,
   clientAddress,
+  clientAbn,
   clientEmail,
   contractorName,
   contractorAbn,
@@ -89,6 +91,9 @@ export function ContractPdfDocument({
 					<View style={[styles.party, styles.partyFirst]}>
 						<Text style={styles.partyLabel}>Client</Text>
 						<Text style={styles.partyName}>{clientName}</Text>
+						{clientAbn?.trim() ? (
+							<Text style={styles.partyDetail}>ABN {clientAbn.trim()}</Text>
+						) : null}
 						{clientAddress.trim() ? (
 							<Text style={styles.partyDetail}>{clientAddress}</Text>
 						) : null}

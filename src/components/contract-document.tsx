@@ -17,6 +17,7 @@ type ContractDocumentProps = {
   agreementDate: number;
   startDate: number;
   clientAddress: string;
+  clientAbn?: string;
   clientEmail?: string;
   contractorName: string;
   contractorAbn: string;
@@ -40,6 +41,7 @@ export function ContractDocument({
   agreementDate,
   startDate,
   clientAddress,
+  clientAbn,
   clientEmail,
   contractorName,
   contractorAbn,
@@ -83,6 +85,7 @@ export function ContractDocument({
           <PartyBlock
             title="Client"
             name={clientName}
+            idNumber={clientAbn?.trim() ? `ABN ${clientAbn.trim()}` : undefined}
             address={clientAddress}
             role="Client"
           />

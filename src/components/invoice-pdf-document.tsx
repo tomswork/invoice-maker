@@ -40,6 +40,7 @@ type Business = {
 type Client = {
 	contactName: string;
 	companyName: string;
+	abn?: string;
 };
 
 type InvoicePdfDocumentProps = {
@@ -88,6 +89,9 @@ export function InvoicePdfDocument({
 						<View style={styles.clientDetails}>
 							<Text style={styles.clientContact}>{client.contactName}</Text>
 							<Text style={styles.clientCompany}>{client.companyName}</Text>
+							{client.abn?.trim() ? (
+								<Text style={styles.clientCompany}>ABN: {client.abn.trim()}</Text>
+							) : null}
 						</View>
 						<View style={styles.metaTable}>
 							<MetaRow label="Number" value={invoiceLabel} />

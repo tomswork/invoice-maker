@@ -23,6 +23,7 @@ export type ContractDocumentInput = {
   agreementDate: number;
   startDate: number;
   clientAddress: string;
+  clientAbn?: string;
   clientEmail?: string;
   contractorName: string;
   contractorAbn: string;
@@ -53,6 +54,7 @@ export function buildContractDocumentProps(
     },
     ...contract,
     clientAddress: client.address ?? "",
+    clientAbn: client.abn,
     clientEmail: client.email,
     contractorName: business.name,
     contractorAbn: business.abn,

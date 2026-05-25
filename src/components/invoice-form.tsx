@@ -279,6 +279,7 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
             ? {
                 contactName: selectedClient.contactName,
                 companyName: selectedClient.companyName,
+                abn: selectedClient.abn,
               }
             : null
         }
