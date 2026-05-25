@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { addDays } from "date-fns";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../convex/_generated/api";
@@ -10,8 +9,12 @@ import { InvoiceFormPreview } from "@/components/invoice-form-preview";
 import { AuDatePicker } from "@/components/ui/au-date-picker";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { formatCents, formatInvoiceNumber } from "@/lib/format";
+import { formatCents, formatInvoiceDate, formatInvoiceNumber } from "@/lib/format";
 import { invoiceTotalCents } from "@/lib/invoice-math";
+import {
+  dueAtFromTerms,
+  termsDaysFromDates,
+} from "@/lib/invoice-dates";
 import {
   nextInvoiceNumberForClient,
   parseInvoiceNumberInput,
@@ -54,7 +57,11 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
   const finalizeInvoice = useMutation(api.invoices.finalize);
 
   const defaultRate = business?.defaultRateCents ?? 12000;
-  const now = Date.now();
+
+  const initialTermsDays = useMemo(
+    () => termsDaysFromDates(initial.issuedAt, initial.dueAt),
+    [initial.issuedAt, initial.dueAt],
+  );
 
   const initialLineState = useMemo(
     () =>
@@ -69,7 +76,7 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
     initial.clientId ?? "",
   );
   const [issuedAt, setIssuedAt] = useState(toDateInputValue(initial.issuedAt));
-  const [dueAt, setDueAt] = useState(toDateInputValue(initial.dueAt));
+  const [termsDays, setTermsDays] = useState(initialTermsDays);
   const [invoiceNumber, setInvoiceNumber] = useState(
     initial.invoiceNumber != null ? String(initial.invoiceNumber) : "",
   );
@@ -90,6 +97,16 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
   const isDraft = initial.status === "draft";
 
   const totalCents = useMemo(() => invoiceTotalCents(lineItems), [lineItems]);
+
+  const issuedAtTimestamp = useMemo(
+    () => fromDateInputValue(issuedAt),
+    [issuedAt],
+  );
+
+  const dueAtTimestamp = useMemo(
+    () => dueAtFromTerms(issuedAtTimestamp, termsDays),
+    [issuedAtTimestamp, termsDays],
+  );
 
   const suggestedInvoiceNumber = useMemo(() => {
     if (!clientId || !invoices?.length) {
@@ -130,8 +147,8 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
           await saveDraft({
             id: invoiceId,
             clientId: clientId || undefined,
-            issuedAt: fromDateInputValue(issuedAt),
-            dueAt: fromDateInputValue(dueAt),
+            issuedAt: issuedAtTimestamp,
+            dueAt: dueAtTimestamp,
             lineItems,
             includeLineItemDates,
             invoiceNumber: parsedInvoiceNumber ?? undefined,
@@ -151,8 +168,8 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
   }, [
     invoiceId,
     clientId,
-    issuedAt,
-    dueAt,
+    issuedAtTimestamp,
+    dueAtTimestamp,
     lineItems,
     includeLineItemDates,
     parsedInvoiceNumber,
@@ -216,8 +233,8 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
       await finalizeInvoice({
         id: invoiceId,
         clientId,
-        issuedAt: fromDateInputValue(issuedAt),
-        dueAt: fromDateInputValue(dueAt),
+        issuedAt: issuedAtTimestamp,
+        dueAt: dueAtTimestamp,
         lineItems: savedLineItems,
         includeLineItemDates,
         invoiceNumber: parsedInvoiceNumber,
@@ -266,8 +283,8 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
             : null
         }
         invoiceNumber={previewInvoiceNumber}
-        issuedAt={fromDateInputValue(issuedAt)}
-        dueAt={fromDateInputValue(dueAt)}
+        issuedAt={issuedAtTimestamp}
+        dueAt={dueAtTimestamp}
         lineItems={lineItems}
         includeLineItemDates={includeLineItemDates}
       />
@@ -318,14 +335,21 @@ export function InvoiceForm({ invoiceId, initial }: InvoiceFormProps) {
               />
             </div>
             <div>
-              <Label htmlFor="due">Due</Label>
+              <Label htmlFor="terms">Terms (days)</Label>
               <Input
-                id="due"
-                type="date"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
+                id="terms"
+                type="number"
+                min={1}
+                step={1}
+                value={termsDays}
+                onChange={(e) =>
+                  setTermsDays(Math.max(1, Number(e.target.value) || 1))
+                }
                 required
               />
+              <p className="mt-1 text-xs text-zinc-500">
+                Due {formatInvoiceDate(dueAtTimestamp)}
+              </p>
             </div>
             {clientId && (
               <div>

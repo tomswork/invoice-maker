@@ -10,8 +10,12 @@ import {
   residentTaxForFinancialYearCents,
   type FinancialYearKey,
 } from "./australian_tax";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+import {
+  DEFAULT_PAYMENT_TERMS_DAYS,
+  dueAtFromTerms,
+  fridayOfCurrentWeek,
+  termsDaysFromDates,
+} from "./invoice_dates";
 
 function lineItemTotalCents(item: {
   quantity: number;
@@ -219,11 +223,12 @@ export const createDraft = mutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
+    const issuedAt = fridayOfCurrentWeek();
 
     return await ctx.db.insert("invoices", {
       status: "draft",
-      issuedAt: now,
-      dueAt: now + 14 * MS_PER_DAY,
+      issuedAt,
+      dueAt: dueAtFromTerms(issuedAt, DEFAULT_PAYMENT_TERMS_DAYS),
       lineItems: [],
       includeLineItemDates: true,
       updatedAt: now,
@@ -434,13 +439,14 @@ export const duplicate = mutation({
     }
 
     const now = Date.now();
-    const dueOffset = Math.max(MS_PER_DAY, invoice.dueAt - invoice.issuedAt);
+    const issuedAt = fridayOfCurrentWeek();
+    const termsDays = termsDaysFromDates(invoice.issuedAt, invoice.dueAt);
 
     return await ctx.db.insert("invoices", {
       status: "draft",
       clientId: invoice.clientId,
-      issuedAt: now,
-      dueAt: now + dueOffset,
+      issuedAt,
+      dueAt: dueAtFromTerms(issuedAt, termsDays),
       lineItems: invoice.lineItems.map((item) => ({ ...item })),
       includeLineItemDates: invoice.includeLineItemDates,
       notes: invoice.notes,
