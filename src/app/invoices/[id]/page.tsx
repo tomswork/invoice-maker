@@ -11,6 +11,7 @@ import { InvoicePaidBadge, InvoicePaidToggle } from "@/components/invoice-paid-t
 import { Button } from "@/components/ui/button";
 import { formatInvoiceNumber } from "@/lib/format";
 import { inferIncludeLineItemDates } from "@/lib/line-items";
+import { fridayOfCurrentWeek } from "@/lib/invoice-dates";
 
 export default function InvoiceViewPage({
   params,
@@ -82,7 +83,10 @@ export default function InvoiceViewPage({
               disabled={duplicating}
               onClick={() => {
                 setDuplicating(true);
-                void duplicateInvoice({ id: invoice._id })
+                void duplicateInvoice({
+                  id: invoice._id,
+                  issuedAt: fridayOfCurrentWeek(),
+                })
                   .then((newId) => router.push(`/invoices/${newId}/edit`))
                   .finally(() => setDuplicating(false));
               }}

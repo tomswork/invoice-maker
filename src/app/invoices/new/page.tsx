@@ -4,6 +4,7 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { api } from "../../../../convex/_generated/api";
+import { fridayOfCurrentWeek } from "@/lib/invoice-dates";
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function NewInvoicePage() {
     if (started.current) return;
     started.current = true;
 
-    void createDraft({})
+    void createDraft({ issuedAt: fridayOfCurrentWeek() })
       .then((id) => {
         router.replace(`/invoices/${id}/edit`);
       })

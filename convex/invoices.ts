@@ -220,10 +220,12 @@ export const get = query({
 });
 
 export const createDraft = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    issuedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const now = Date.now();
-    const issuedAt = fridayOfCurrentWeek();
+    const issuedAt = args.issuedAt ?? fridayOfCurrentWeek();
 
     return await ctx.db.insert("invoices", {
       status: "draft",
@@ -431,7 +433,10 @@ export const setPaid = mutation({
 });
 
 export const duplicate = mutation({
-  args: { id: v.id("invoices") },
+  args: {
+    id: v.id("invoices"),
+    issuedAt: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     const invoice = await ctx.db.get(args.id);
     if (!invoice) {
@@ -439,7 +444,7 @@ export const duplicate = mutation({
     }
 
     const now = Date.now();
-    const issuedAt = fridayOfCurrentWeek();
+    const issuedAt = args.issuedAt ?? fridayOfCurrentWeek();
     const termsDays = termsDaysFromDates(invoice.issuedAt, invoice.dueAt);
 
     return await ctx.db.insert("invoices", {

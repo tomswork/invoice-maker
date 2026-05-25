@@ -18,6 +18,7 @@ import {
   formatInvoiceLabel,
 } from "@/lib/format";
 import { sortInvoicesByLatestNumber } from "@/lib/invoice-number";
+import { fridayOfCurrentWeek } from "@/lib/invoice-dates";
 
 export default function InvoicesPage() {
   const router = useRouter();
@@ -37,7 +38,10 @@ export default function InvoicesPage() {
   async function handleDuplicate(id: Id<"invoices">) {
     setDuplicatingId(id);
     try {
-      const newId = await duplicateInvoice({ id });
+      const newId = await duplicateInvoice({
+        id,
+        issuedAt: fridayOfCurrentWeek(),
+      });
       router.push(`/invoices/${newId}/edit`);
     } finally {
       setDuplicatingId(null);
