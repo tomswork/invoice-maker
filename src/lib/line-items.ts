@@ -1,4 +1,10 @@
 import { addDays, format, parse } from "date-fns";
+import {
+  dateInputValueFromTimestamp,
+  formatCalendarDate,
+  timestampFromDateInputValue,
+  todayCalendarTimestamp,
+} from "@/lib/calendar-dates";
 
 export type LineItem = {
   description: string;
@@ -10,25 +16,28 @@ export type LineItem = {
 const AU_DATE_PREFIX = /^(\d{2}\/\d{2}\/\d{4})\s*-\s*(.*)$/;
 
 export function startOfToday(): number {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  return d.getTime();
+  return todayCalendarTimestamp();
 }
 
 export function toDateInputValue(timestamp: number): string {
-  return format(new Date(timestamp), "yyyy-MM-dd");
+  return dateInputValueFromTimestamp(timestamp);
 }
 
 export function fromDateInputValue(value: string): number {
-  return parse(value, "yyyy-MM-dd", new Date()).getTime();
+  return timestampFromDateInputValue(value);
 }
 
 export function formatAuLineDate(timestamp: number): string {
-  return format(new Date(timestamp), "dd/MM/yyyy");
+  return formatCalendarDate(timestamp, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function parseAuLineDate(dateStr: string): number {
-  return parse(dateStr, "dd/MM/yyyy", new Date()).getTime();
+  const parsed = parse(dateStr, "dd/MM/yyyy", new Date());
+  return timestampFromDateInputValue(format(parsed, "yyyy-MM-dd"));
 }
 
 export function stripAuDatePrefix(description: string): string {

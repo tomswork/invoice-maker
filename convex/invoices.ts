@@ -13,9 +13,9 @@ import {
 import {
   DEFAULT_PAYMENT_TERMS_DAYS,
   dueAtFromTerms,
-  fridayOfCurrentWeek,
   termsDaysFromDates,
 } from "./invoice_dates";
+import { fridayOfCurrentWeek } from "./calendar_dates";
 
 function lineItemTotalCents(item: {
   quantity: number;

@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { formatContractFilenameDate, slugifyForFilename } from "@/lib/contract-format";
+import { formatCalendarDate } from "@/lib/calendar-dates";
 
 export function coerceCents(cents: number | null | undefined): number {
   if (cents == null || Number.isNaN(cents) || !Number.isFinite(cents)) {
@@ -48,7 +48,11 @@ export function formatInvoiceLabel(
 }
 
 export function formatInvoiceDate(timestamp: number): string {
-  return format(new Date(timestamp), "d MMM, yyyy");
+  return formatCalendarDate(timestamp, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export function formatQuantity(hours: number): string {

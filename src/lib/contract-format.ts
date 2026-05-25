@@ -1,4 +1,7 @@
-import { format } from "date-fns";
+import {
+  calendarDateParts,
+  formatCalendarDate,
+} from "@/lib/calendar-dates";
 
 const NUMBER_WORDS: Record<number, string> = {
   1: "one",
@@ -18,12 +21,17 @@ const NUMBER_WORDS: Record<number, string> = {
 };
 
 export function formatContractDate(timestamp: number): string {
-  return format(new Date(timestamp), "dd/MM/yyyy");
+  return formatCalendarDate(timestamp, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 /** Australian short date for PDF filenames, e.g. 20-05-26 */
 export function formatContractFilenameDate(timestamp: number): string {
-  return format(new Date(timestamp), "dd-MM-yy");
+  const { year, month, day } = calendarDateParts(timestamp);
+  return `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${String(year).slice(-2)}`;
 }
 
 export function slugifyForFilename(value: string): string {
